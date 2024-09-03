@@ -9,7 +9,6 @@ const orderRouter = Router()
 
 
 orderRouter.post("/",
-    // validation(CAC.createOrder),
     auth(Object.values(roles)),
     OC.createOrder)
 
