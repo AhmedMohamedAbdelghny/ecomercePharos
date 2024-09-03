@@ -7,6 +7,8 @@ import couponModel from './../../../db/models/coupon.model.js';
 import cartModel from "../../../db/models/cart.model.js";
 import createInvoice from './../../utils/pdf.js';
 import { sendEmail } from "../../service/sendEmail.js";
+import { payment } from "../../utils/payment.js";
+import Stripe from "stripe";
 
 
 
@@ -83,33 +85,62 @@ export const createOrder = asyncHandler(async (req, res, next) => {
 
 
     // generate pdf
+    // const invoice = {
+    //     shipping: {
+    //         name: req.user.name,
+    //         address: req.user.address,
+    //         city: "Alex",
+    //         state: "Cairo",
+    //         country: "Cairo",
+    //         postal_code: 94111
+    //     },
+    //     items: order.products,
+    //     subtotal: order.subTotal,
+    //     paid: order.totalPaid,
+    //     invoice_nr: order._id,
+    //     data: order.createdAt,
+    //     coupon: req.body?.coupon?.amount
+    // };
 
+    // await createInvoice(invoice, "invoice.pdf");
 
-    const invoice = {
-        shipping: {
-            name: req.user.name,
-            address: req.user.address,
-            city: "Alex",
-            state: "Cairo",
-            country: "Cairo",
-            postal_code: 94111
-        },
-        items: order.products,
-        subtotal: order.subTotal,
-        paid: order.totalPaid,
-        invoice_nr: order._id,
-        data: order.createdAt,
-        coupon: req.body?.coupon?.amount
-    };
+    // await sendEmail(req.user.email, "order", "invoice.pdf", [
+    //     {
+    //         path: "invoice.pdf",
+    //         contentType: "application/pdf",
+    //     }
+    // ])
 
-    await createInvoice(invoice, "invoice.pdf");
+    if (paymentMethod == "card") {
+        const stripe = new Stripe(process.env.secretKey)
+        const session = await payment({
+            stripe,
+            payment_method_types: ["card"],
+            mode: "payment",
+            customer_email: req.user.email,
+            metadata: {
+                orderId: order._id
+            },
+            success_url: `${req.protocol}://${req.headers.host}/orders/success/${order._id}`,
+            cancel_url: `${req.protocol}://${req.headers.host}/orders/cancel/${order._id}`,
+            line_items: order.products.map((product) => {
+                return {
+                    price_data: {
+                        currency: "egp",
+                        product_data: {
+                            name: product.title,
+                        },
+                        unit_amount: product.totalPrice,
+                    },
+                    quantity: product.quantity,
+                }
+            }),
 
-    await sendEmail(req.user.email, "order", "invoice.pdf", [
-        {
-            path: "invoice.pdf",
-            contentType: "application/pdf",
-        }
-    ])
+        })
+        return res.status(201).json({ msg: "done", url: session.url, data: session })
+
+    }
+
 
     return res.status(201).json({ msg: "done", data: order })
 
