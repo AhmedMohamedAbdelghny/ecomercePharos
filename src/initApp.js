@@ -16,6 +16,12 @@ export const initApp = (app, express) => {
 
     // app.set('case sensitive routing', true);
 
+    app.get("/", (req, res) => {
+        return res.status(200).json({
+            msg: "Hello on my ecommerce project"
+        })
+    })
+
     app.use("/users", routes.userRouter)
     app.use("/categories", routes.categoryRouter)
     app.use("/subCategories", routes.subCategoryRouter)
