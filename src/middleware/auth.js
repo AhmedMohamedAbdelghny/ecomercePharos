@@ -36,9 +36,7 @@ export const auth = (roles = []) => {
         if (parseInt(user?.passwordChangedAt?.getTime() / 1000) > decoded.iat) {
             return res.status(409).json({ msg: "token expired" })
         }
-        console.log(roles);
-        console.log(user);
-        
+  
         if (!roles.includes(user.role)) {
             return res.status(403).json({ msg: "you are not authorized" })
         }
